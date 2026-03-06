@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "trainergm"
+version = "0.1.0"
+description = ""
+authors = ["nleea <neldecas12@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "0.111.0"
+uvicorn = {version = "0.30.1", extras = ["standard"]}
+sqlmodel = "0.0.19"
+asyncpg = "0.29.0"
+alembic = "1.13.1"
+python-jose = {version = "3.3.0", extras = ["cryptography"]}
+passlib = {version = "1.7.4", extras = ["bcrypt"]}
+python-multipart = "0.0.9"
+pydantic-settings = "2.3.4"
+sqlalchemy = {version = "2.0.31", extras = ["asyncio"]}
+greenlet = "3.0.3"
+bcrypt = "^5.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
