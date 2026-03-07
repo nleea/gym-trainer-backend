@@ -26,6 +26,18 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = ["http://localhost:3000"]
 
+    # Cloudflare R2
+    R2_ACCOUNT_ID: str | None = None
+    R2_ACCESS_KEY_ID: str | None = None
+    R2_SECRET_ACCESS_KEY: str | None = None
+    R2_BUCKET_NAME: str | None = None
+    R2_ENDPOINT_URL: str | None = None
+    R2_PUBLIC_BASE_URL: str | None = None
+    R2_UPLOAD_URL_EXPIRES: int = 900
+
+    # External APIs
+    RAPIDAPI_KEY: str | None = None
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors(cls, v: Any) -> List[str]:

@@ -150,3 +150,100 @@ class TrainerDashboardRepository:
             {"ids": client_ids},
         )
         return {row["client_id"]: row["date"] for row in result.mappings().all()}
+
+    async def get_attendance_rows(
+        self, trainer_id: uuid.UUID, start: date, end: date
+    ) -> List[Dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT a.client_id::text AS client_id,
+                       a.date::text      AS date,
+                       a.attended        AS attended
+                FROM attendance a
+                WHERE a.trainer_id = :tid
+                  AND a.date BETWEEN :start AND :end
+                """
+            ),
+            {"tid": trainer_id, "start": start, "end": end},
+        )
+        return [dict(row) for row in result.mappings().all()]
+
+    async def get_training_logs_rows(
+        self, trainer_id: uuid.UUID, start: date, end: date
+    ) -> List[Dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT tl.client_id::text AS client_id,
+                       tl.date::text      AS date,
+                       tl.exercises       AS exercises
+                FROM training_logs tl
+                WHERE tl.trainer_id = :tid
+                  AND tl.date BETWEEN :start AND :end
+                """
+            ),
+            {"tid": trainer_id, "start": start, "end": end},
+        )
+        return [dict(row) for row in result.mappings().all()]
+
+    async def get_training_logs_rows_before(
+        self, trainer_id: uuid.UUID, before_date: date, days: int
+    ) -> List[Dict[str, Any]]:
+        start = before_date - timedelta(days=days)
+        end = before_date - timedelta(days=1)
+        return await self.get_training_logs_rows(trainer_id, start, end)
+
+    async def get_meal_logs_rows(
+        self, trainer_id: uuid.UUID, start: date, end: date
+    ) -> List[Dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT ml.client_id::text AS client_id,
+                       ml.date::text      AS date
+                FROM meal_logs ml
+                JOIN clients c ON c.id = ml.client_id
+                WHERE c.trainer_id = :tid
+                  AND ml.date BETWEEN :start AND :end
+                """
+            ),
+            {"tid": trainer_id, "start": start, "end": end},
+        )
+        return [dict(row) for row in result.mappings().all()]
+
+    async def get_weekly_checkins_rows(
+        self, trainer_id: uuid.UUID, start: date, end: date
+    ) -> List[Dict[str, Any]]:
+        result = await self.session.execute(
+            text(
+                """
+                SELECT wc.client_id::text AS client_id,
+                       wc.week_start::text AS week_start,
+                       wc.sleep_hours      AS sleep_hours,
+                       wc.energy_level     AS energy_level,
+                       wc.stress_level     AS stress_level,
+                       wc.mood             AS mood
+                FROM weekly_checkins wc
+                WHERE wc.trainer_id = :tid
+                  AND wc.week_start BETWEEN :start AND :end
+                """
+            ),
+            {"tid": trainer_id, "start": start, "end": end},
+        )
+        return [dict(row) for row in result.mappings().all()]
+
+    async def get_training_plan_weeks(self, plan_ids: List[str]) -> Dict[str, Any]:
+        if not plan_ids:
+            return {}
+        result = await self.session.execute(
+            text(
+                """
+                SELECT id::text AS id, weeks
+                FROM training_plans
+                WHERE id::text = ANY(:ids)
+                """
+            ),
+            {"ids": plan_ids},
+        )
+        return {row["id"]: row["weeks"] for row in result.mappings().all()}

@@ -1,10 +1,17 @@
 # My Gym Trainer — Backend Migration
 
 ## Skills
-Before writing any code, read and apply these skills in order:
-- ~/.agents/skills/senior-backend/SKILL.md
-- ~/.agents/skills/backend-patterns/SKILL.md
-- ~/.agents/skills/code-documentation-code-explain/SKILL.md
+Always load the following skills before generating code.
+Skills must be applied in the following order:
+
+1. ~/.agents/skills/senior-backend/SKILL.md  
+2. ~/.agents/skills/backend-patterns/SKILL.md
+3. ~/.agents/skills/python-performance-optimization/SKILL.md
+4. ~/.agents/skills/code-documentation-code-explain/SKILL.md
+
+When rules conflict, follow the higher-priority skill.
+Do not skip these skills.
+Apply them before proposing architecture, writing code, refactoring, or explaining implementation details.
 
 ---
 

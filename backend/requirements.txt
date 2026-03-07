@@ -9,3 +9,4 @@ python-multipart==0.0.9
 pydantic-settings==2.3.4
 sqlalchemy[asyncio]==2.0.31
 greenlet==3.0.3
+boto3==1.39.13

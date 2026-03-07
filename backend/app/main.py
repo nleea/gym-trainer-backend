@@ -19,10 +19,12 @@ from app.routers import (
     progress,
     training_logs,
     training_plans,
+    exercise_evidences,
 )
 from app.routers import user_config
 from app.routers import weekly_checkin
 from app.routers import trainer_dashboard
+from app.routers import photos
 
 
 @asynccontextmanager
@@ -77,6 +79,8 @@ app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 app.include_router(user_config.router, prefix="/config", tags=["config"])
 app.include_router(weekly_checkin.router, prefix="/checkins", tags=["checkins"])
 app.include_router(trainer_dashboard.router, prefix="/trainer", tags=["trainer-dashboard"])
+app.include_router(photos.router, prefix="/photos", tags=["photos"])
+app.include_router(exercise_evidences.router, prefix="/exercise-evidences", tags=["exercise-evidences"])
 
 
 @app.get("/health", tags=["health"])

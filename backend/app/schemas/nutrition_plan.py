@@ -38,6 +38,11 @@ class NutritionPlanUpdate(BaseModel):
 class NutritionPlanResponse(NutritionPlanBase):
     id: uuid.UUID
     trainer_id: uuid.UUID
+    is_template: bool = False
+    client_id: Optional[uuid.UUID] = None
+    source_template_id: Optional[uuid.UUID] = None
+    assigned_at: Optional[datetime] = None
+    copies_count: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

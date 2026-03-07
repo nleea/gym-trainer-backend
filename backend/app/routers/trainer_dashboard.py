@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query
 
 from app.core.dependencies import require_trainer
 from app.dependencies import get_trainer_dashboard_service
 from app.models.user import User
 from app.schemas.trainer_dashboard import TrainerDashboardResponse
+from app.schemas.trainer_dashboard import TrainerReportsResponse
 from app.services.trainer_dashboard import TrainerDashboardService
 
 router = APIRouter()
@@ -15,3 +18,13 @@ async def get_trainer_dashboard(
     service: TrainerDashboardService = Depends(get_trainer_dashboard_service),
 ):
     return await service.get_dashboard(trainer)
+
+
+@router.get("/{trainer_id}/reports", response_model=TrainerReportsResponse)
+async def get_trainer_reports(
+    trainer_id: str,
+    period: Literal["week", "month"] = Query("week"),
+    trainer: User = Depends(require_trainer),
+    service: TrainerDashboardService = Depends(get_trainer_dashboard_service),
+):
+    return await service.get_reports(trainer, trainer_id=trainer_id, period=period)

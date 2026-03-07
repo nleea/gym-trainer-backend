@@ -112,3 +112,16 @@ class MetricsSummaryResponse(BaseModel):
     deltas: Dict[str, DeltaValue]
     series: Dict[str, List[SeriesPoint]]
     history: List[MetricResponse]
+
+
+class MetricPhotoUploadRequest(BaseModel):
+    file_name: str
+    content_type: str
+    file_size: Optional[int] = None
+
+
+class MetricPhotoUploadResponse(BaseModel):
+    key: str
+    upload_url: str
+    public_url: str
+    expires_in: int

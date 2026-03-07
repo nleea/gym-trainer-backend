@@ -67,6 +67,14 @@ from app.repositories.implementations.postgres.weekly_checkin import WeeklyCheck
 from app.repositories.interface.weeklyCheckinInterface import WeeklyCheckinRepositoryInterface
 from app.services.weekly_checkin import WeeklyCheckinService
 
+""" PHOTOS """
+from app.repositories.implementations.postgres.photo_repository import PhotoRepository
+from app.repositories.interface.photoInterface import PhotoRepositoryInterface
+from app.services.photo_service import PhotoService
+from app.repositories.implementations.postgres.exercise_evidences import ExerciseEvidencesRepository
+from app.repositories.interface.exerciseEvidencesInterface import ExerciseEvidencesRepositoryInterface
+from app.services.exercise_evidences import ExerciseEvidencesService
+
 
 # ── Repository factories ──────────────────────────────────────────────────────
 
@@ -187,3 +195,28 @@ async def get_weekly_checkin_service(
     clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
 ) -> WeeklyCheckinService:
     return WeeklyCheckinService(checkin_repo, clients_repo)
+
+
+async def get_photo_repository(db: AsyncSession = Depends(db_context)) -> PhotoRepositoryInterface:
+    return PhotoRepository(db)
+
+
+async def get_photo_service(
+    photo_repo: PhotoRepositoryInterface = Depends(get_photo_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> PhotoService:
+    return PhotoService(photo_repo, clients_repo)
+
+
+async def get_exercise_evidences_repository(
+    db: AsyncSession = Depends(db_context),
+) -> ExerciseEvidencesRepositoryInterface:
+    return ExerciseEvidencesRepository(db)
+
+
+async def get_exercise_evidences_service(
+    evidences_repo: ExerciseEvidencesRepositoryInterface = Depends(get_exercise_evidences_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+    training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
+) -> ExerciseEvidencesService:
+    return ExerciseEvidencesService(evidences_repo, clients_repo, training_logs_repo)
