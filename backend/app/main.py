@@ -21,6 +21,8 @@ from app.routers import (
     training_plans,
 )
 from app.routers import user_config
+from app.routers import weekly_checkin
+from app.routers import trainer_dashboard
 
 
 @asynccontextmanager
@@ -73,6 +75,8 @@ app.include_router(progress.router, prefix="/progress", tags=["progress"])
 app.include_router(attendance.router, prefix="/attendance", tags=["attendance"])
 app.include_router(metrics.router, prefix="/metrics", tags=["metrics"])
 app.include_router(user_config.router, prefix="/config", tags=["config"])
+app.include_router(weekly_checkin.router, prefix="/checkins", tags=["checkins"])
+app.include_router(trainer_dashboard.router, prefix="/trainer", tags=["trainer-dashboard"])
 
 
 @app.get("/health", tags=["health"])

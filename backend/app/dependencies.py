@@ -58,6 +58,15 @@ from app.repositories.implementations.postgres.user_config import UserConfigRepo
 from app.repositories.interface.userConfigInterface import UserConfigRepositoryInterface
 from app.services.user_config import UserConfigService
 
+""" TRAINER DASHBOARD """
+from app.repositories.implementations.postgres.trainer_dashboard_repo import TrainerDashboardRepository
+from app.services.trainer_dashboard import TrainerDashboardService
+
+""" WEEKLY CHECKIN """
+from app.repositories.implementations.postgres.weekly_checkin import WeeklyCheckinRepository
+from app.repositories.interface.weeklyCheckinInterface import WeeklyCheckinRepositoryInterface
+from app.services.weekly_checkin import WeeklyCheckinService
+
 
 # ── Repository factories ──────────────────────────────────────────────────────
 
@@ -164,3 +173,17 @@ async def get_user_config_service(
     repo: UserConfigRepositoryInterface = Depends(get_user_config_repository),
 ) -> UserConfigService:
     return UserConfigService(repo)
+
+async def get_trainer_dashboard_service(
+    db: AsyncSession = Depends(db_context),
+) -> TrainerDashboardService:
+    return TrainerDashboardService(TrainerDashboardRepository(db))
+
+async def get_weekly_checkin_repository(db: AsyncSession = Depends(db_context)) -> WeeklyCheckinRepositoryInterface:
+    return WeeklyCheckinRepository(db)
+
+async def get_weekly_checkin_service(
+    checkin_repo: WeeklyCheckinRepositoryInterface = Depends(get_weekly_checkin_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> WeeklyCheckinService:
+    return WeeklyCheckinService(checkin_repo, clients_repo)
