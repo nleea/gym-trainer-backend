@@ -12,6 +12,7 @@ from app.routers import (
     attendance,
     auth,
     clients,
+    evidences,
     exercises,
     meal_logs,
     metrics,
@@ -25,6 +26,8 @@ from app.routers import user_config
 from app.routers import weekly_checkin
 from app.routers import trainer_dashboard
 from app.routers import photos
+from app.routers import monthly_report
+from app.scheduler import scheduler
 
 
 @asynccontextmanager
@@ -48,7 +51,9 @@ async def lifespan(app: FastAPI):
         app.state.engine = engine
     
     await init_db()
+    scheduler.start()
     yield
+    scheduler.shutdown(wait=False)
 
 
 app = FastAPI(
@@ -81,6 +86,8 @@ app.include_router(weekly_checkin.router, prefix="/checkins", tags=["checkins"])
 app.include_router(trainer_dashboard.router, prefix="/trainer", tags=["trainer-dashboard"])
 app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(exercise_evidences.router, prefix="/exercise-evidences", tags=["exercise-evidences"])
+app.include_router(evidences.router, prefix="/evidences", tags=["evidences"])
+app.include_router(monthly_report.router, tags=["monthly-report"])
 
 
 @app.get("/health", tags=["health"])

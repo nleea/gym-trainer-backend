@@ -215,6 +215,7 @@ class ExerciseEvidencesService:
             training_log_id=training_log_id,
             exercise_id=exercise_id,
             exercise_name=exercise_name,
+            evidence_type="exercise",
             client_id=log.client_id,
             trainer_id=log.trainer_id,
             client_note=client_note,
@@ -223,33 +224,6 @@ class ExerciseEvidencesService:
         )
         created = await self.evidences_repo.create(evidence)
         return self._serialize_evidence(created)
-
-    async def list_evidences(
-        self,
-        current_user: User,
-        training_log_id: Optional[uuid.UUID] = None,
-        client_id: Optional[uuid.UUID] = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> List[dict]:
-        if training_log_id:
-            await self._assert_log_access(training_log_id, current_user)
-            rows = await self.evidences_repo.list_by_training_log(training_log_id)
-            return [self._serialize_evidence(r) for r in rows]
-
-        if client_id:
-            await self._assert_user_can_access_client(client_id, current_user)
-            rows = await self.evidences_repo.list_by_client(client_id, limit=limit, offset=offset)
-            return [self._serialize_evidence(r) for r in rows]
-
-        raise HTTPException(status_code=400, detail="Provide training_log_id or client_id")
-
-    async def get_evidence(self, evidence_id: uuid.UUID, current_user: User) -> dict:
-        evidence = await self.evidences_repo.get_by_id(evidence_id)
-        if not evidence:
-            raise HTTPException(status_code=404, detail="Evidence not found")
-        await self._assert_user_can_access_client(evidence.client_id, current_user)
-        return self._serialize_evidence(evidence)
 
     async def submit_feedback(
         self,

@@ -1,7 +1,8 @@
 import uuid
+from datetime import date, datetime, time
 from typing import List
 
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -32,6 +33,7 @@ class ExerciseEvidencesRepository(ExerciseEvidencesRepositoryInterface):
     ) -> ExerciseEvidence | None:
         result = await self.session.execute(
             select(ExerciseEvidence).where(
+                ExerciseEvidence.evidence_type == "exercise",
                 ExerciseEvidence.training_log_id == training_log_id,
                 ExerciseEvidence.exercise_id == exercise_id,
             )
@@ -41,7 +43,10 @@ class ExerciseEvidencesRepository(ExerciseEvidencesRepositoryInterface):
     async def list_by_training_log(self, training_log_id: uuid.UUID) -> List[ExerciseEvidence]:
         result = await self.session.execute(
             select(ExerciseEvidence)
-            .where(ExerciseEvidence.training_log_id == training_log_id)
+            .where(
+                ExerciseEvidence.evidence_type == "exercise",
+                ExerciseEvidence.training_log_id == training_log_id,
+            )
             .order_by(ExerciseEvidence.submitted_at.desc(), ExerciseEvidence.created_at.desc())
         )
         return list(result.scalars().all())
@@ -53,6 +58,56 @@ class ExerciseEvidencesRepository(ExerciseEvidencesRepositoryInterface):
             select(ExerciseEvidence)
             .where(ExerciseEvidence.client_id == client_id)
             .order_by(
+                ExerciseEvidence.responded_at.is_(None).desc(),
+                ExerciseEvidence.submitted_at.desc(),
+                ExerciseEvidence.created_at.desc(),
+            )
+            .offset(max(offset, 0))
+            .limit(max(limit, 1))
+        )
+        return list(result.scalars().all())
+
+    async def list_by_client_filtered(
+        self,
+        client_id: uuid.UUID,
+        week_start: date | None = None,
+        week_end: date | None = None,
+        evidence_type: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> List[ExerciseEvidence]:
+        query = select(ExerciseEvidence).where(ExerciseEvidence.client_id == client_id)
+        if evidence_type:
+            query = query.where(ExerciseEvidence.evidence_type == evidence_type)
+        if week_start:
+            query = query.where(
+                or_(
+                    and_(
+                        ExerciseEvidence.evidence_type == "nutrition",
+                        ExerciseEvidence.nutrition_date >= week_start,
+                    ),
+                    and_(
+                        ExerciseEvidence.evidence_type != "nutrition",
+                        ExerciseEvidence.submitted_at >= datetime.combine(week_start, time.min),
+                    ),
+                )
+            )
+        if week_end:
+            query = query.where(
+                or_(
+                    and_(
+                        ExerciseEvidence.evidence_type == "nutrition",
+                        ExerciseEvidence.nutrition_date <= week_end,
+                    ),
+                    and_(
+                        ExerciseEvidence.evidence_type != "nutrition",
+                        ExerciseEvidence.submitted_at <= datetime.combine(week_end, time.max),
+                    ),
+                )
+            )
+
+        result = await self.session.execute(
+            query.order_by(
                 ExerciseEvidence.responded_at.is_(None).desc(),
                 ExerciseEvidence.submitted_at.desc(),
                 ExerciseEvidence.created_at.desc(),

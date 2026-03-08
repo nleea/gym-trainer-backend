@@ -19,6 +19,7 @@ from app.schemas.photo import (
     PhotoTimelineResponse,
     PhotoUploadUrlResponse,
 )
+from app.schemas.evidence import EvidenceDayResponse, EvidenceItemResponse, EvidenceWeekResponse
 
 
 class PhotoService:
@@ -164,3 +165,43 @@ class PhotoService:
 
         await asyncio.to_thread(_delete)
         await self.repo.delete(photo)
+
+    async def list_evidences(
+        self,
+        client_id: uuid.UUID,
+        current_user: User,
+        evidence_type: PhotoType | None = None,
+        week_start: date | None = None,
+        week_end: date | None = None,
+    ) -> EvidenceWeekResponse:
+        await self._assert_access(client_id, current_user)
+        photos = await self.repo.get_by_filters(
+            client_id=client_id,
+            photo_type=evidence_type,
+            week_start=week_start,
+            week_end=week_end,
+        )
+
+        groups_map: dict[date, list[EvidenceItemResponse]] = defaultdict(list)
+        for photo in photos:
+            groups_map[photo.taken_at].append(
+                EvidenceItemResponse(
+                    id=photo.id,
+                    client_id=photo.client_id,
+                    trainer_id=photo.uploaded_by,
+                    type=photo.type.value,
+                    date=photo.taken_at,
+                    exercise_name="Food evidence",
+                    client_note=photo.notes,
+                    photo_urls=[self._signed_url(photo.r2_key)],
+                    submitted_at=photo.created_at,
+                    responded_at=None,
+                    created_at=photo.created_at,
+                )
+            )
+
+        days = [
+            EvidenceDayResponse(date=d, label=d.strftime("%A"), evidences=items)
+            for d, items in sorted(groups_map.items(), reverse=True)
+        ]
+        return EvidenceWeekResponse(week_start=week_start, week_end=week_end, days=days)

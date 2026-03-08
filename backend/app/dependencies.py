@@ -74,6 +74,7 @@ from app.services.photo_service import PhotoService
 from app.repositories.implementations.postgres.exercise_evidences import ExerciseEvidencesRepository
 from app.repositories.interface.exerciseEvidencesInterface import ExerciseEvidencesRepositoryInterface
 from app.services.exercise_evidences import ExerciseEvidencesService
+from app.services.evidences import EvidencesService
 
 
 # ── Repository factories ──────────────────────────────────────────────────────
@@ -220,3 +221,15 @@ async def get_exercise_evidences_service(
     training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
 ) -> ExerciseEvidencesService:
     return ExerciseEvidencesService(evidences_repo, clients_repo, training_logs_repo)
+
+
+async def get_evidences_service(
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+    exercise_repo: ExerciseEvidencesRepositoryInterface = Depends(get_exercise_evidences_repository),
+) -> EvidencesService:
+    service = EvidencesService(clients_repo=clients_repo, exercise_repo=exercise_repo, providers=[])
+    providers = [
+        service.build_nutrition_provider(exercise_repo),
+        service.build_exercise_provider(exercise_repo),
+    ]
+    return EvidencesService(clients_repo=clients_repo, exercise_repo=exercise_repo, providers=providers)

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Optional
 
 from sqlalchemy import JSON, Column
@@ -10,9 +10,11 @@ class ExerciseEvidence(SQLModel, table=True):
     __tablename__ = "exercise_evidences"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    training_log_id: uuid.UUID = Field(foreign_key="training_logs.id", index=True)
-    exercise_id: str = Field(index=True)
+    training_log_id: Optional[uuid.UUID] = Field(default=None, foreign_key="training_logs.id", index=True)
+    exercise_id: Optional[str] = Field(default=None, index=True)
     exercise_name: str
+    evidence_type: str = Field(default="exercise", index=True)
+    nutrition_date: Optional[date] = Field(default=None, index=True)
     client_id: uuid.UUID = Field(foreign_key="clients.id", index=True)
     trainer_id: uuid.UUID = Field(foreign_key="users.id", index=True)
 

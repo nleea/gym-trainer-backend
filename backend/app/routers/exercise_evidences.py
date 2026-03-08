@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
 from app.core.dependencies import get_current_user
 from app.dependencies import get_exercise_evidences_service
@@ -39,24 +39,6 @@ async def create_evidence(
     )
 
 
-@router.get("", response_model=List[ExerciseEvidenceResponse])
-async def list_evidences(
-    training_log_id: Optional[uuid.UUID] = Query(None),
-    client_id: Optional[uuid.UUID] = Query(None),
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    current_user: User = Depends(get_current_user),
-    service: ExerciseEvidencesService = Depends(get_exercise_evidences_service),
-):
-    return await service.list_evidences(
-        current_user=current_user,
-        training_log_id=training_log_id,
-        client_id=client_id,
-        limit=limit,
-        offset=offset,
-    )
-
-
 @router.get("/pending-count/{client_id}")
 async def get_pending_count(
     client_id: uuid.UUID,
@@ -64,15 +46,6 @@ async def get_pending_count(
     service: ExerciseEvidencesService = Depends(get_exercise_evidences_service),
 ):
     return await service.get_pending_counts(client_id, current_user)
-
-
-@router.get("/{evidence_id}", response_model=ExerciseEvidenceResponse)
-async def get_evidence(
-    evidence_id: uuid.UUID,
-    current_user: User = Depends(get_current_user),
-    service: ExerciseEvidencesService = Depends(get_exercise_evidences_service),
-):
-    return await service.get_evidence(evidence_id, current_user)
 
 
 @router.put("/{evidence_id}/feedback", response_model=ExerciseEvidenceResponse)

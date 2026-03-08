@@ -1,3 +1,4 @@
+from datetime import date
 from abc import ABC, abstractmethod
 from typing import List
 from uuid import UUID
@@ -27,6 +28,18 @@ class ExerciseEvidencesRepositoryInterface(ABC):
     @abstractmethod
     async def list_by_client(
         self, client_id: UUID, limit: int = 20, offset: int = 0
+    ) -> List[ExerciseEvidence]:
+        pass
+
+    @abstractmethod
+    async def list_by_client_filtered(
+        self,
+        client_id: UUID,
+        week_start: date | None = None,
+        week_end: date | None = None,
+        evidence_type: str | None = None,
+        limit: int = 200,
+        offset: int = 0,
     ) -> List[ExerciseEvidence]:
         pass
 
