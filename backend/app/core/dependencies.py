@@ -18,6 +18,11 @@ async def get_current_user(
 ) -> User:
     token = credentials.credentials
     payload = decode_token(token)
+    if payload.get("token_type") == "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token cannot be used for this resource",
+        )
 
     user_id = payload.get("sub")
     if not user_id:
@@ -54,3 +59,16 @@ async def require_client(current_user: User = Depends(get_current_user)) -> User
             detail="Client access required",
         )
     return current_user
+
+
+async def get_current_session_id(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> uuid.UUID | None:
+    payload = decode_token(credentials.credentials)
+    session_id = payload.get("sid")
+    if not session_id:
+        return None
+    try:
+        return uuid.UUID(session_id)
+    except ValueError:
+        return None

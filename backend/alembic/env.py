@@ -22,6 +22,7 @@ from app.models.meal_log import MealLog  # noqa: F401, E402
 from app.models.progress_entry import ProgressEntry  # noqa: F401, E402
 from app.models.attendance import Attendance  # noqa: F401, E402
 from app.models.metric import Metric  # noqa: F401, E402
+from app.models.user_session import UserSession  # noqa: F401, E402
 
 config = context.config
 fileConfig(config.config_file_name)

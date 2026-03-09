@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from typing import Any, Dict, List
 
 from app.models.user import User
+from app.core.datetime_utils import today_for_timezone
 from app.repositories.implementations.postgres.trainer_dashboard_repo import TrainerDashboardRepository
 from app.schemas.trainer_dashboard import (
     AdherenceHistoryItem,
@@ -29,8 +30,8 @@ class TrainerDashboardService:
     def __init__(self, repo: TrainerDashboardRepository) -> None:
         self.repo = repo
 
-    async def get_dashboard(self, trainer: User) -> TrainerDashboardResponse:
-        today = date.today()
+    async def get_dashboard(self, trainer: User, timezone_name: str | None = None) -> TrainerDashboardResponse:
+        today = today_for_timezone(timezone_name)
         # Monday of the current week
         week_start = today - timedelta(days=today.weekday())
 
@@ -213,14 +214,14 @@ class TrainerDashboardService:
         return streak
 
     async def get_reports(
-        self, trainer: User, trainer_id: str, period: str
+        self, trainer: User, trainer_id: str, period: str, timezone_name: str | None = None
     ) -> TrainerReportsResponse:
         if str(trainer.id) != str(trainer_id):
             from fastapi import HTTPException, status
 
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-        today = date.today()
+        today = today_for_timezone(timezone_name)
         period_days = 7 if period == "week" else 30
         range_start = today - timedelta(days=period_days - 1)
         range_end = today

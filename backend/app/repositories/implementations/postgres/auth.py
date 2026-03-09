@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 
 from typing import Tuple
@@ -7,6 +8,7 @@ from sqlmodel import select
 
 from app.models.user import User
 from app.models.client import Client
+from app.models.user_session import UserSession
 from app.repositories.interface.authInterface import AuthRepositoryInterface
 
 
@@ -36,3 +38,39 @@ class AuthRepository(AuthRepositoryInterface):
         await self.session.commit()
         await self.session.refresh(user)
         return user
+
+    async def create_user_session(self, session_obj: UserSession) -> UserSession:
+        self.session.add(session_obj)
+        await self.session.commit()
+        await self.session.refresh(session_obj)
+        return session_obj
+
+    async def get_session_by_id(self, session_id: uuid.UUID) -> UserSession | None:
+        result = await self.session.execute(
+            select(UserSession).where(UserSession.id == session_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_session_by_jti(self, refresh_jti: str) -> UserSession | None:
+        result = await self.session.execute(
+            select(UserSession).where(UserSession.refresh_jti == refresh_jti)
+        )
+        return result.scalar_one_or_none()
+
+    async def update_user_session(self, session_obj: UserSession) -> UserSession:
+        session_obj.updated_at = datetime.utcnow()
+        self.session.add(session_obj)
+        await self.session.commit()
+        await self.session.refresh(session_obj)
+        return session_obj
+
+    async def list_active_sessions(self, user_id: uuid.UUID) -> list[UserSession]:
+        now = datetime.utcnow()
+        result = await self.session.execute(
+            select(UserSession)
+            .where(UserSession.user_id == user_id)
+            .where(UserSession.revoked_at.is_(None))
+            .where(UserSession.expires_at > now)
+            .order_by(UserSession.last_seen_at.desc())
+        )
+        return list(result.scalars().all())

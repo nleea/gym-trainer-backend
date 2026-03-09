@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 
 from app.models.weekly_checkin import WeeklyCheckin
 from app.models.user import User
+from app.core.datetime_utils import today_for_timezone
 from app.repositories.interface.clientsInterface import ClientsRepositoryInterface
 from app.repositories.interface.weeklyCheckinInterface import WeeklyCheckinRepositoryInterface
 from app.schemas.weekly_checkin import WeeklyCheckinCreate, WeeklyCheckinUpdate
@@ -29,8 +30,8 @@ class WeeklyCheckinService:
             )
         return client
 
-    def _current_week_start(self) -> date:
-        today = date.today()
+    def _current_week_start(self, timezone_name: str | None = None) -> date:
+        today = today_for_timezone(timezone_name)
         return today - timedelta(days=today.weekday())  # Monday
 
     async def upsert_checkin(self, data: WeeklyCheckinCreate, current_user: User) -> WeeklyCheckin:
@@ -58,6 +59,7 @@ class WeeklyCheckinService:
         self,
         client_id: Optional[uuid.UUID],
         current_user: User,
+        timezone_name: str | None = None,
     ) -> WeeklyCheckin | None:
         if current_user.role == "client":
             client = await self._get_client_for_user(current_user)
@@ -70,7 +72,7 @@ class WeeklyCheckinService:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
             target_client_id = client_id
 
-        week_start = self._current_week_start()
+        week_start = self._current_week_start(timezone_name)
         return await self.checkin_repo.get_by_client_and_week(target_client_id, week_start)
 
     async def list_checkins(

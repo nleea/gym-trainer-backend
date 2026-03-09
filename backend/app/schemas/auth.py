@@ -13,22 +13,43 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    device_name: Optional[str] = None
+    device_info: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
+    session_id: Optional[str] = None
     token_type: str = "bearer"
 
 class AuthResponse(BaseModel):
     user: Optional[Any]
     access_token: str
     refresh_token: str
+    session_id: Optional[str] = None
     token_type: str = "bearer"
 
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+    device_name: Optional[str] = None
+    device_info: Optional[str] = None
+
+
+class UserSessionResponse(BaseModel):
+    id: str
+    device_name: Optional[str] = None
+    device_info: Optional[str] = None
+    ip_address: Optional[str] = None
+    created_at: str
+    last_seen_at: str
+    expires_at: str
+    is_current: bool = False
+
+
+class LogoutAllRequest(BaseModel):
+    keep_current: bool = True
 
 
 class CreateClientRequest(BaseModel):

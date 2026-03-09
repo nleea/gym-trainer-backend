@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from app.core.dependencies import get_current_user, require_client
 from app.dependencies import get_weekly_checkin_service
@@ -23,11 +23,13 @@ async def upsert_checkin(
 
 @router.get("/current", response_model=Optional[WeeklyCheckinResponse])
 async def get_current_checkin(
+    request: Request,
     client_id: Optional[uuid.UUID] = Query(None),
     current_user: User = Depends(get_current_user),
     service: WeeklyCheckinService = Depends(get_weekly_checkin_service),
 ):
-    return await service.get_current_checkin(client_id, current_user)
+    timezone_name = request.headers.get("X-Timezone")
+    return await service.get_current_checkin(client_id, current_user, timezone_name=timezone_name)
 
 
 @router.get("", response_model=List[WeeklyCheckinResponse])

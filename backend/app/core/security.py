@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from uuid import uuid4
 import bcrypt
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
@@ -30,6 +31,15 @@ def create_refresh_token(data: dict) -> str:
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "token_type": "refresh"})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def create_refresh_token_with_claims(data: dict) -> tuple[str, str, datetime]:
+    to_encode = data.copy()
+    jti = uuid4().hex
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "token_type": "refresh", "jti": jti})
+    token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return token, jti, expire
 
 
 def decode_token(token: str) -> dict:

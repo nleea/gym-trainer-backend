@@ -1,7 +1,7 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.core.dependencies import get_current_user, require_trainer
 from app.dependencies import get_clients_service
@@ -58,22 +58,31 @@ async def update_client(
 @router.get("/{client_id}/summary", response_model=ClientSummaryResponse)
 async def get_client_summary(
     client_id: uuid.UUID,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: ClientsService = Depends(get_clients_service),
 ):
+    timezone_name = request.headers.get("X-Timezone")
     if current_user.role == "trainer":
-        return await service.get_client_summary(client_id, trainer=current_user)
+        return await service.get_client_summary(client_id, trainer=current_user, timezone_name=timezone_name)
     else:
-        return await service.get_client_summary(client_id, trainer=None, requesting_client=current_user)
+        return await service.get_client_summary(
+            client_id,
+            trainer=None,
+            requesting_client=current_user,
+            timezone_name=timezone_name,
+        )
 
 
 @router.get("/{client_id}/workout-summary", response_model=WorkoutSummaryResponse)
 async def get_workout_summary(
     client_id: uuid.UUID,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: ClientsService = Depends(get_clients_service),
 ):
-    return await service.get_workout_summary(client_id, current_user)
+    timezone_name = request.headers.get("X-Timezone")
+    return await service.get_workout_summary(client_id, current_user, timezone_name=timezone_name)
 
 
 @router.get("/{client_id}/metrics-summary", response_model=MetricsSummaryResponse)

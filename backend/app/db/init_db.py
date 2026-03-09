@@ -17,6 +17,8 @@ from app.models.exercise_favorite import ExerciseFavorite  # noqa: F401
 from app.models.user_config import UserConfig  # noqa: F401
 from app.models.photo import Photo  # noqa: F401
 from app.models.exercise_evidence import ExerciseEvidence  # noqa: F401
+from app.models.monthly_report import MonthlyReport  # noqa: F401
+from app.models.user_session import UserSession  # noqa: F401
 
 
 async def init_db() -> None:

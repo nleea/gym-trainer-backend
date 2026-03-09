@@ -16,6 +16,7 @@ from app.schemas.client import (
     WorkoutSummaryResponse, WorkoutSummaryStats, ExerciseProgressItem, WorkoutHistoryItem,
     WeeklyVolumeItem, HeatmapItem,
 )
+from app.core.datetime_utils import today_for_timezone
 from app.schemas.training_log import _normalize_exercise
 
 
@@ -75,7 +76,11 @@ class ClientsService:
         return await self.clients_repo.update(client, data.model_dump(exclude_none=True))
 
     async def get_client_summary(
-        self, client_id: uuid.UUID, trainer: User | None, requesting_client: User | None = None
+        self,
+        client_id: uuid.UUID,
+        trainer: User | None,
+        requesting_client: User | None = None,
+        timezone_name: str | None = None,
     ) -> ClientSummaryResponse:
         client = await self.clients_repo.get_by_id(client_id)
         if not client:
@@ -87,7 +92,7 @@ class ClientsService:
             if client.user_id != requesting_client.id:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-        today = date.today()
+        today = today_for_timezone(timezone_name)
         thirty_days_ago = today - timedelta(days=30)
         seven_days_ago = today - timedelta(days=7)
 
@@ -122,7 +127,7 @@ class ClientsService:
         )
 
     async def get_workout_summary(
-        self, client_id: uuid.UUID, current_user: User
+        self, client_id: uuid.UUID, current_user: User, timezone_name: str | None = None
     ) -> WorkoutSummaryResponse:
         client = await self.clients_repo.get_by_id(client_id)
         if not client:
@@ -137,7 +142,7 @@ class ClientsService:
         logs = await self.training_logs_repo.list_by_filters(client_id=client_id)
         logs_sorted_desc = sorted(logs, key=lambda l: l.date, reverse=True)
 
-        today = date.today()
+        today = today_for_timezone(timezone_name)
         # Sunday-based week (matching frontend startOfWeek)
         week_start = today - timedelta(days=today.isoweekday() % 7)
 
