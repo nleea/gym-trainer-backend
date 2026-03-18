@@ -1,3 +1,3 @@
 .env
-
+__pycache__
 # pm2 start "poetry run uvicorn app.main:app --host 0.0.0.0 --port 8006" --name gymb

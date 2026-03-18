@@ -45,10 +45,11 @@ class AuthRepository(AuthRepositoryInterface):
         await self.session.refresh(session_obj)
         return session_obj
 
-    async def get_session_by_id(self, session_id: uuid.UUID) -> UserSession | None:
-        result = await self.session.execute(
-            select(UserSession).where(UserSession.id == session_id)
-        )
+    async def get_session_by_id(self, session_id: uuid.UUID, *, for_update: bool = False) -> UserSession | None:
+        stmt = select(UserSession).where(UserSession.id == session_id)
+        if for_update:
+            stmt = stmt.with_for_update()
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_session_by_jti(self, refresh_jti: str) -> UserSession | None:

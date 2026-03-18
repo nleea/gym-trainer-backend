@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -17,6 +17,6 @@ class ProgressEntry(SQLModel, table=True):
     measurements: Optional[Any] = Field(default=None, sa_column=Column(JSON))
     # DECISION: photos stores file paths/URLs only; actual upload to R2 not implemented
     photos: Optional[Any] = Field(default=None, sa_column=Column(JSON))
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

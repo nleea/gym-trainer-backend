@@ -23,7 +23,7 @@ class AuthRepositoryInterface(ABC):
         pass
 
     @abstractmethod
-    async def get_session_by_id(self, session_id: UUID) -> UserSession | None:
+    async def get_session_by_id(self, session_id: UUID, *, for_update: bool = False) -> UserSession | None:
         pass
 
     @abstractmethod

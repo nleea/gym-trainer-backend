@@ -54,3 +54,8 @@ class TrainingLogsRepositoryInterface(ABC):
     async def get_max_weights_before_date(self, client_id: UUID, log_date: date) -> Dict[str, float]:
         """Returns {exercise_id: max_weight} for all exercises logged before log_date."""
         pass
+
+    @abstractmethod
+    async def upsert_by_client_date(self, log: TrainingLog) -> TrainingLog:
+        """Atomic INSERT ON CONFLICT (client_id, date) DO UPDATE."""
+        pass

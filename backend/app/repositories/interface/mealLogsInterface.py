@@ -38,3 +38,8 @@ class MealLogsRepositoryInterface(ABC):
     @abstractmethod
     async def delete(self, log: MealLog) -> None:
         pass
+
+    @abstractmethod
+    async def upsert_by_client_date_meal_key(self, log: MealLog) -> MealLog:
+        """Atomic INSERT ON CONFLICT (client_id, date, meal_key) DO UPDATE."""
+        pass

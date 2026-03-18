@@ -3,6 +3,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -165,6 +166,36 @@ class TrainingLogsRepository(TrainingLogsRepositoryInterface):
         await self.session.commit()
         await self.session.refresh(log)
         return log
+
+    async def upsert_by_client_date(self, log: TrainingLog) -> TrainingLog:
+        """Atomic INSERT ON CONFLICT (client_id, date) DO UPDATE."""
+        now = datetime.utcnow()
+        stmt = pg_insert(TrainingLog).values(
+            id=log.id,
+            client_id=log.client_id,
+            trainer_id=log.trainer_id,
+            date=log.date,
+            exercises=log.exercises,
+            duration=log.duration,
+            notes=log.notes,
+            effort=log.effort,
+            created_at=now,
+            updated_at=now,
+        )
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_training_logs_client_date",
+            set_={
+                "exercises": stmt.excluded.exercises,
+                "duration": stmt.excluded.duration,
+                "notes": stmt.excluded.notes,
+                "effort": stmt.excluded.effort,
+                "updated_at": now,
+            },
+        )
+        stmt = stmt.returning(TrainingLog)
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.scalar_one()
 
     async def get_weekly_volume(self, client_id: uuid.UUID, weeks: int = 12) -> List[Dict[str, Any]]:
         rows = (await self.session.execute(

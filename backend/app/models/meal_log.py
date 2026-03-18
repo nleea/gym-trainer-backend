@@ -2,12 +2,15 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column, Text
+from sqlalchemy import JSON, Column, Text, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
 class MealLog(SQLModel, table=True):
     __tablename__ = "meal_logs"
+    __table_args__ = (
+        UniqueConstraint("client_id", "date", "meal_key", name="uq_meal_logs_client_date_meal_key"),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     client_id: uuid.UUID = Field(foreign_key="clients.id", index=True)

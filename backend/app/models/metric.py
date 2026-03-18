@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import List, Optional
 
-from sqlalchemy import Column, JSON
+from sqlalchemy import Column, JSON, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -51,7 +51,7 @@ class Metric(SQLModel, table=True):
     calf_right_cm: Optional[float] = None
 
     # --- extra ---
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     photos: Optional[List] = Field(default=None, sa_column=Column(JSON))
     measurement_protocol: Optional[str] = None
 

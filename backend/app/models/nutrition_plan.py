@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column, Text
+from sqlalchemy import JSON, Column, DateTime, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -14,7 +14,7 @@ class NutritionPlan(SQLModel, table=True):
     is_template: bool = Field(default=False, index=True)
     client_id: Optional[uuid.UUID] = Field(default=None, foreign_key="clients.id", index=True)
     source_template_id: Optional[uuid.UUID] = Field(default=None, foreign_key="nutrition_plans.id")
-    assigned_at: Optional[datetime] = None
+    assigned_at: Optional[datetime] = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
     name: str = Field(max_length=255)
     days: Optional[Any] = Field(default=None, sa_column=Column(JSON))
     target_calories: Optional[int] = None

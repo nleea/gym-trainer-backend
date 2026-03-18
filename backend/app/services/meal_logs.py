@@ -97,37 +97,29 @@ class MealLogsService:
         return await self.logs_repo.create(log)
 
     async def upsert_log(self, data: MealLogUpsert, current_user: User) -> MealLog:
-        """Upsert: find by client+date+meal_key, update or create."""
+        """Atomic upsert by client+date+meal_key using INSERT ON CONFLICT."""
         client = await self._get_client_for_user(current_user)
 
-        fields = {
-            "type": data.type,
-            "meal_name": data.meal_name,
-            "description": data.description,
-            "calories": data.calories,
-            "protein": data.protein,
-            "carbs": data.carbs,
-            "fat": data.fat,
-            "fiber": data.fiber,
-            "water_ml": data.water_ml,
-            "foods": data.foods,
-            "notes": data.notes,
-        }
-
-        if data.meal_key:
-            existing = await self.logs_repo.get_by_client_date_meal_key(
-                client.id, data.date, data.meal_key
-            )
-            if existing:
-                return await self.logs_repo.update(existing, fields)
-
-        # Create new
         log = MealLog(
             client_id=client.id,
             date=data.date,
+            type=data.type,
+            meal_name=data.meal_name,
             meal_key=data.meal_key,
-            **fields,
+            description=data.description,
+            calories=data.calories,
+            protein=data.protein,
+            carbs=data.carbs,
+            fat=data.fat,
+            fiber=data.fiber,
+            water_ml=data.water_ml,
+            foods=data.foods,
+            notes=data.notes,
         )
+
+        if data.meal_key:
+            return await self.logs_repo.upsert_by_client_date_meal_key(log)
+
         return await self.logs_repo.create(log)
 
     async def delete_log(self, log_id: uuid.UUID, current_user: User) -> None:

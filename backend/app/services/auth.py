@@ -26,7 +26,6 @@ from app.schemas.auth import (
     UserSessionResponse,
 )
 
-
 class AuthService:
     def __init__(
         self,
@@ -114,7 +113,7 @@ class AuthService:
             device_info=data.device_info,
         )
         return AuthResponse(
-            user={**user.model_dump(), "client_id": client.id if client else None, 'plan': client.plan_id if client else None, 'nutriton_plan': client.nutrition_plan_id if client else None},
+            user={**user.model_dump(), "client_id": client.id if client else None, 'plan': client.plan_id if client else None, 'nutrition_plan': client.nutrition_plan_id if client else None},
             access_token=tokens.access_token,
             refresh_token=tokens.refresh_token,
             session_id=tokens.session_id,
@@ -144,7 +143,8 @@ class AuthService:
                 detail="User not found",
             )
 
-        session = await self.auth_repo.get_session_by_id(uuid.UUID(sid))
+        # SELECT FOR UPDATE prevents concurrent refresh race conditions
+        session = await self.auth_repo.get_session_by_id(uuid.UUID(sid), for_update=True)
         if not session or session.user_id != user.id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

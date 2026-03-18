@@ -45,22 +45,16 @@ class TrainingLogsService:
     ) -> dict:
         client = await self._get_client_for_user(current_user)
 
-        existing = await self.logs_repo.get_by_client_and_date(client.id, data.date)
-        if existing:
-            saved_log = await self.logs_repo.update(
-                existing, data.model_dump(exclude={"date"}, exclude_none=True)
-            )
-        else:
-            log = TrainingLog(
-                client_id=client.id,
-                trainer_id=client.trainer_id,
-                date=data.date,
-                exercises=[ex.model_dump() for ex in (data.exercises or [])],
-                duration=data.duration,
-                notes=data.notes,
-                effort=data.effort,
-            )
-            saved_log = await self.logs_repo.create(log)
+        log = TrainingLog(
+            client_id=client.id,
+            trainer_id=client.trainer_id,
+            date=data.date,
+            exercises=[ex.model_dump() for ex in (data.exercises or [])],
+            duration=data.duration,
+            notes=data.notes,
+            effort=data.effort,
+        )
+        saved_log = await self.logs_repo.upsert_by_client_date(log)
 
         # PR detection: compare new max weights against historical best before today
         hist = await self.logs_repo.get_max_weights_before_date(client.id, data.date)

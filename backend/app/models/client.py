@@ -2,11 +2,15 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
+from sqlalchemy import Column, Text, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
 class Client(SQLModel, table=True):
     __tablename__ = "clients"
+    __table_args__ = (
+        UniqueConstraint("user_id", name="clients_user_id_key"),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     # DECISION: user_id added to link client profile to the user account for authentication
@@ -14,7 +18,7 @@ class Client(SQLModel, table=True):
     trainer_id: uuid.UUID = Field(foreign_key="users.id", index=True)
     status: Optional[str] = Field(default=None, max_length=50)
     start_date: Optional[date] = None
-    goals: Optional[str] = None
+    goals: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
     weight: Optional[float] = None
     height: Optional[float] = None
     age: Optional[int] = None

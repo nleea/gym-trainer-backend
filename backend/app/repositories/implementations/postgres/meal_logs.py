@@ -2,6 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import List, Optional
 
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
@@ -67,3 +68,47 @@ class MealLogsRepository(MealLogsRepositoryInterface):
     async def delete(self, log: MealLog) -> None:
         await self.session.delete(log)
         await self.session.commit()
+
+    async def upsert_by_client_date_meal_key(self, log: MealLog) -> MealLog:
+        """Atomic INSERT ON CONFLICT (client_id, date, meal_key) DO UPDATE."""
+        now = datetime.utcnow()
+        stmt = pg_insert(MealLog).values(
+            id=log.id,
+            client_id=log.client_id,
+            date=log.date,
+            type=log.type,
+            meal_name=log.meal_name,
+            meal_key=log.meal_key,
+            description=log.description,
+            calories=log.calories,
+            protein=log.protein,
+            carbs=log.carbs,
+            fat=log.fat,
+            fiber=log.fiber,
+            water_ml=log.water_ml,
+            foods=log.foods,
+            notes=log.notes,
+            created_at=now,
+            updated_at=now,
+        )
+        stmt = stmt.on_conflict_do_update(
+            constraint="uq_meal_logs_client_date_meal_key",
+            set_={
+                "type": stmt.excluded.type,
+                "meal_name": stmt.excluded.meal_name,
+                "description": stmt.excluded.description,
+                "calories": stmt.excluded.calories,
+                "protein": stmt.excluded.protein,
+                "carbs": stmt.excluded.carbs,
+                "fat": stmt.excluded.fat,
+                "fiber": stmt.excluded.fiber,
+                "water_ml": stmt.excluded.water_ml,
+                "foods": stmt.excluded.foods,
+                "notes": stmt.excluded.notes,
+                "updated_at": now,
+            },
+        )
+        stmt = stmt.returning(MealLog)
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.scalar_one()

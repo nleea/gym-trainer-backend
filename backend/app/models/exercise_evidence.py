@@ -2,12 +2,15 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
 class ExerciseEvidence(SQLModel, table=True):
     __tablename__ = "exercise_evidences"
+    __table_args__ = (
+        UniqueConstraint("training_log_id", "exercise_id", name="uq_exercise_evidence_log_exercise"),
+    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     training_log_id: Optional[uuid.UUID] = Field(default=None, foreign_key="training_logs.id", index=True)

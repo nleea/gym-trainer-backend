@@ -23,6 +23,13 @@ from app.models.progress_entry import ProgressEntry  # noqa: F401, E402
 from app.models.attendance import Attendance  # noqa: F401, E402
 from app.models.metric import Metric  # noqa: F401, E402
 from app.models.user_session import UserSession  # noqa: F401, E402
+from app.models.exercise import Exercise  # noqa: F401, E402
+from app.models.exercise_evidence import ExerciseEvidence  # noqa: F401, E402
+from app.models.exercise_favorite import ExerciseFavorite  # noqa: F401, E402
+from app.models.monthly_report import MonthlyReport  # noqa: F401, E402
+from app.models.photo import Photo  # noqa: F401, E402
+from app.models.user_config import UserConfig  # noqa: F401, E402
+from app.models.weekly_checkin import WeeklyCheckin  # noqa: F401, E402
 
 config = context.config
 fileConfig(config.config_file_name)
