@@ -8,10 +8,10 @@ from pydantic import BaseModel
 class NutritionPlanBase(BaseModel):
     name: str
     days: Optional[Any] = None  # JSON: list of day objects
-    target_calories: Optional[int] = None
-    target_protein: Optional[int] = None
-    target_carbs: Optional[int] = None
-    target_fat: Optional[int] = None
+    target_calories: Optional[float] = None
+    target_protein: Optional[float] = None
+    target_carbs: Optional[float] = None
+    target_fat: Optional[float] = None
     fiber_g: Optional[int] = None
     water_ml: Optional[int] = None
     meals_per_day: Optional[int] = None

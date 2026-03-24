@@ -76,6 +76,9 @@ from app.repositories.interface.exerciseEvidencesInterface import ExerciseEviden
 from app.services.exercise_evidences import ExerciseEvidencesService
 from app.services.evidences import EvidencesService
 
+""" VOLUME METRICS """
+from app.services.volume_metrics import VolumeMetricsService
+
 
 # ── Repository factories ──────────────────────────────────────────────────────
 
@@ -233,3 +236,12 @@ async def get_evidences_service(
         service.build_exercise_provider(exercise_repo),
     ]
     return EvidencesService(clients_repo=clients_repo, exercise_repo=exercise_repo, providers=providers)
+
+
+async def get_volume_metrics_service(
+    training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+    training_plans_repo: TrainingPlansRepositoryInterface = Depends(get_training_plans_repository),
+    meal_logs_repo: MealLogsRepositoryInterface = Depends(get_meal_logs_repository),
+) -> VolumeMetricsService:
+    return VolumeMetricsService(training_logs_repo, clients_repo, training_plans_repo, meal_logs_repo)
