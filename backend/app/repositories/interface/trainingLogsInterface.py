@@ -59,3 +59,17 @@ class TrainingLogsRepositoryInterface(ABC):
     async def upsert_by_client_date(self, log: TrainingLog) -> TrainingLog:
         """Atomic INSERT ON CONFLICT (client_id, date) DO UPDATE."""
         pass
+
+    @abstractmethod
+    async def get_volume_by_date_range(
+        self, client_id: UUID, from_date: date, to_date: date,
+    ) -> List[Dict[str, Any]]:
+        """Returns [{week: 'YYYY-MM-DD', volume: float}] grouped by week within range."""
+        pass
+
+    @abstractmethod
+    async def count_logs_in_range(
+        self, client_id: UUID, from_date: date, to_date: date,
+    ) -> int:
+        """Count training logs between from_date and to_date."""
+        pass

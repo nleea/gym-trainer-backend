@@ -104,6 +104,55 @@ ORDER BY tl.date ASC
 """)
 
 
+_VOLUME_BY_RANGE_SQL = text("""
+WITH
+  week_series AS (
+    SELECT generate_series(
+      date_trunc('week', :from_date::date),
+      date_trunc('week', :to_date::date),
+      '1 week'::interval
+    )::date AS week_start
+  ),
+  log_volumes AS (
+    SELECT
+      date_trunc('week', tl.date)::date AS week_start,
+      COALESCE(
+        (SELECT SUM(
+            COALESCE((s->>'reps')::float, 0) * COALESCE((s->>'weight')::float, 0)
+          )
+          FROM jsonb_array_elements(
+            CASE WHEN jsonb_typeof(tl.exercises::jsonb) = 'array'
+                 THEN tl.exercises::jsonb ELSE '[]'::jsonb END
+          ) ex,
+          jsonb_array_elements(
+            CASE WHEN jsonb_typeof(ex->'sets') = 'array'
+                 THEN ex->'sets' ELSE '[]'::jsonb END
+          ) s
+        ), 0
+      ) AS log_volume
+    FROM training_logs tl
+    WHERE tl.client_id = :cid
+      AND tl.date >= :from_date
+      AND tl.date <= :to_date
+  )
+SELECT
+  w.week_start::text AS week,
+  ROUND(COALESCE(SUM(lv.log_volume), 0)) AS volume
+FROM week_series w
+LEFT JOIN log_volumes lv ON lv.week_start = w.week_start
+GROUP BY w.week_start
+ORDER BY w.week_start ASC
+""")
+
+_COUNT_LOGS_RANGE_SQL = text("""
+SELECT COUNT(*) AS cnt
+FROM training_logs
+WHERE client_id = :cid
+  AND date >= :from_date
+  AND date <= :to_date
+""")
+
+
 class TrainingLogsRepository(TrainingLogsRepositoryInterface):
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -238,3 +287,19 @@ class TrainingLogsRepository(TrainingLogsRepositoryInterface):
             _MAX_WEIGHTS_SQL, {"cid": client_id, "log_date": log_date}
         )).mappings().all()
         return {row["exercise_id"]: float(row["max_weight"]) for row in rows}
+
+    async def get_volume_by_date_range(
+        self, client_id: uuid.UUID, from_date: date, to_date: date,
+    ) -> List[Dict[str, Any]]:
+        rows = (await self.session.execute(
+            _VOLUME_BY_RANGE_SQL, {"cid": client_id, "from_date": from_date, "to_date": to_date}
+        )).mappings().all()
+        return [{"week": row["week"], "volume": float(row["volume"])} for row in rows]
+
+    async def count_logs_in_range(
+        self, client_id: uuid.UUID, from_date: date, to_date: date,
+    ) -> int:
+        row = (await self.session.execute(
+            _COUNT_LOGS_RANGE_SQL, {"cid": client_id, "from_date": from_date, "to_date": to_date}
+        )).mappings().first()
+        return int(row["cnt"]) if row else 0
