@@ -1,6 +1,8 @@
+import math
 import uuid
+from datetime import date
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import boto3
 from fastapi import HTTPException, status
@@ -11,6 +13,8 @@ from app.models.user import User
 from app.repositories.interface.clientsInterface import ClientsRepositoryInterface
 from app.repositories.interface.metricsInterface import MetricsRepositoryInterface
 from app.schemas.metric import (
+    BodyCompositionPoint,
+    BodyCompositionResponse,
     MetricCreate,
     MetricPhotoUploadRequest,
     MetricPhotoUploadResponse,
@@ -28,6 +32,69 @@ class MetricsService:
     ) -> None:
         self.metrics_repo = metrics_repo
         self.clients_repo = clients_repo
+
+    @staticmethod
+    def _navy_body_fat(
+        gender: str,
+        waist_cm: float,
+        neck_cm: float,
+        height_cm: float,
+        hips_cm: Optional[float] = None,
+    ) -> Optional[float]:
+        """Navy Method body fat estimation. Returns percentage or None if invalid."""
+        if waist_cm <= neck_cm or height_cm <= 0:
+            return None
+        try:
+            if gender == "male":
+                bf = (
+                    495
+                    / (
+                        1.0324
+                        - 0.19077 * math.log10(waist_cm - neck_cm)
+                        + 0.15456 * math.log10(height_cm)
+                    )
+                    - 450
+                )
+            elif gender == "female":
+                if not hips_cm or hips_cm <= 0:
+                    return None
+                bf = (
+                    495
+                    / (
+                        1.29579
+                        - 0.35004 * math.log10(waist_cm + hips_cm - neck_cm)
+                        + 0.22100 * math.log10(height_cm)
+                    )
+                    - 450
+                )
+            else:
+                return None
+        except (ValueError, ZeroDivisionError):
+            return None
+        return round(max(bf, 0), 1)
+
+    async def _apply_body_composition(self, metric: Metric, client_id: uuid.UUID) -> None:
+        """Auto-calculate body_fat_pct (Navy) and lean_mass_kg if possible."""
+        # Navy Method: only if body_fat_pct was not provided
+        if metric.body_fat_pct is None and metric.neck_cm and metric.waist_cm and metric.hips_cm:
+            client = await self.clients_repo.get_by_id(client_id)
+            height = metric.neck_cm  # we need height_cm — use client.height
+            if client and client.height and client.gender:
+                bf = self._navy_body_fat(
+                    gender=client.gender,
+                    waist_cm=metric.waist_cm,
+                    neck_cm=metric.neck_cm,
+                    height_cm=client.height,
+                    hips_cm=metric.hips_cm,
+                )
+                if bf is not None:
+                    metric.body_fat_pct = bf
+
+        # Lean mass: weight × (1 - body_fat_pct / 100)
+        if metric.weight_kg and metric.body_fat_pct is not None:
+            metric.lean_mass_kg = round(
+                metric.weight_kg * (1 - metric.body_fat_pct / 100), 2
+            )
 
     @staticmethod
     def _sanitize_filename(file_name: str) -> str:
@@ -95,6 +162,7 @@ class MetricsService:
             client_id=client.id,
             **data.model_dump(exclude_none=False),
         )
+        await self._apply_body_composition(metric, client.id)
         return await self.metrics_repo.create(metric)
 
     async def update_metric(
@@ -108,7 +176,13 @@ class MetricsService:
         if not client or metric.client_id != client.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-        return await self.metrics_repo.update(metric, data.model_dump(exclude_none=True))
+        updated = await self.metrics_repo.update(metric, data.model_dump(exclude_none=True))
+        await self._apply_body_composition(updated, updated.client_id)
+        await self.metrics_repo.update(updated, {
+            "body_fat_pct": updated.body_fat_pct,
+            "lean_mass_kg": updated.lean_mass_kg,
+        })
+        return updated
 
     async def delete_metric(self, metric_id: uuid.UUID, current_user: User) -> None:
         metric = await self.metrics_repo.get_by_id(metric_id)
@@ -139,6 +213,29 @@ class MetricsService:
             series=raw["series"],
             history=history,
         )
+
+    async def get_body_composition(
+        self,
+        client_id: uuid.UUID,
+        from_date: date,
+        to_date: date,
+        current_user: User,
+    ) -> BodyCompositionResponse:
+        await self._assert_can_access_client(client_id, current_user)
+        metrics = await self.metrics_repo.list_by_client_date_range(
+            client_id, from_date, to_date
+        )
+        points = [
+            BodyCompositionPoint(
+                date=str(m.date),
+                body_fat_pct=m.body_fat_pct,
+                lean_mass_kg=m.lean_mass_kg,
+                weight_kg=m.weight_kg,
+            )
+            for m in metrics
+            if m.body_fat_pct is not None or m.lean_mass_kg is not None or m.weight_kg is not None
+        ]
+        return BodyCompositionResponse(points=points)
 
     async def create_photo_upload_url(
         self, upload: MetricPhotoUploadRequest, current_user: User

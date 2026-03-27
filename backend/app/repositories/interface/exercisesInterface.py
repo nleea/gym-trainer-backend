@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, List, Optional, Set
 from uuid import UUID
 
 from app.models.exercise import Exercise
@@ -57,6 +57,11 @@ class ExercisesRepositoryInterface(ABC):
 
     @abstractmethod
     async def favorite_ids_for_user(self, user_id: UUID, exercise_ids: list[UUID]) -> set[UUID]:
+        pass
+
+    @abstractmethod
+    async def find_existing_names(self, names: List[str]) -> Set[str]:
+        """Returns the set of exercise names (lowercased) that already exist."""
         pass
 
     @abstractmethod

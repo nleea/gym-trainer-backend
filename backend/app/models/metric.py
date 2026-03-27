@@ -21,6 +21,7 @@ class Metric(SQLModel, table=True):
     visceral_fat: Optional[float] = None
     bone_mass_kg: Optional[float] = None
     bmr_kcal: Optional[float] = None
+    lean_mass_kg: Optional[float] = None
 
     # --- legacy (kept for backwards compat) ---
     waist: Optional[float] = None

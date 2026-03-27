@@ -16,6 +16,7 @@ class MetricBase(BaseModel):
     visceral_fat: Optional[float] = None
     bone_mass_kg: Optional[float] = None
     bmr_kcal: Optional[float] = None
+    lean_mass_kg: Optional[float] = None
 
     # legacy
     waist: Optional[float] = None
@@ -62,6 +63,7 @@ class MetricUpdate(BaseModel):
     visceral_fat: Optional[float] = None
     bone_mass_kg: Optional[float] = None
     bmr_kcal: Optional[float] = None
+    lean_mass_kg: Optional[float] = None
     waist: Optional[float] = None
     arm: Optional[float] = None
     chest: Optional[float] = None
@@ -112,6 +114,17 @@ class MetricsSummaryResponse(BaseModel):
     deltas: Dict[str, DeltaValue]
     series: Dict[str, List[SeriesPoint]]
     history: List[MetricResponse]
+
+
+class BodyCompositionPoint(BaseModel):
+    date: str
+    body_fat_pct: Optional[float] = None
+    lean_mass_kg: Optional[float] = None
+    weight_kg: Optional[float] = None
+
+
+class BodyCompositionResponse(BaseModel):
+    points: List[BodyCompositionPoint]
 
 
 class MetricPhotoUploadRequest(BaseModel):

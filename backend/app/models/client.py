@@ -22,6 +22,7 @@ class Client(SQLModel, table=True):
     weight: Optional[float] = None
     height: Optional[float] = None
     age: Optional[int] = None
+    gender: Optional[str] = Field(default=None, max_length=10)
     plan_id: Optional[uuid.UUID] = Field(default=None, foreign_key="training_plans.id")
     nutrition_plan_id: Optional[uuid.UUID] = Field(default=None, foreign_key="nutrition_plans.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -11,6 +11,13 @@ class SetLog(BaseModel):
     rpe: Optional[float] = None
     completed: bool = True
 
+    @field_validator("rpe")
+    @classmethod
+    def validate_rpe(cls, v: Optional[float]) -> Optional[float]:
+        if v is not None and (v < 1 or v > 10):
+            raise ValueError("RPE must be between 1 and 10")
+        return v
+
 
 class ExerciseLog(BaseModel):
     exerciseId: str

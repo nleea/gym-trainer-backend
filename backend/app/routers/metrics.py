@@ -8,6 +8,7 @@ from app.core.dependencies import get_current_user, require_client
 from app.dependencies import get_metrics_service, get_volume_metrics_service
 from app.models.user import User
 from app.schemas.metric import (
+    BodyCompositionResponse,
     MetricCreate,
     MetricPhotoUploadRequest,
     MetricPhotoUploadResponse,
@@ -59,6 +60,17 @@ async def get_adherence_rate(
     service: VolumeMetricsService = Depends(get_volume_metrics_service),
 ):
     return await service.get_adherence_rate(client_id, from_date, to_date, current_user)
+
+
+@router.get("/body-composition", response_model=BodyCompositionResponse)
+async def get_body_composition(
+    client_id: uuid.UUID = Query(...),
+    from_date: date = Query(..., alias="from"),
+    to_date: date = Query(..., alias="to"),
+    current_user: User = Depends(get_current_user),
+    service: MetricsService = Depends(get_metrics_service),
+):
+    return await service.get_body_composition(client_id, from_date, to_date, current_user)
 
 
 @router.get("/{client_id}", response_model=List[MetricResponse])
