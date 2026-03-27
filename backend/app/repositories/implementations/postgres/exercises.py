@@ -26,7 +26,7 @@ class ExercisesRepository(ExercisesRepositoryInterface):
         limit: int = 20,
         offset: int = 0,
     ) -> tuple[list[Exercise], int]:
-        filters = [Exercise.external_id.is_not(None)]
+        filters = [Exercise.external_id.is_(None)]
         if body_part:
             filters.append(func.lower(Exercise.body_part) == body_part.strip().lower())
         if equipment:
@@ -189,6 +189,17 @@ class ExercisesRepository(ExercisesRepositoryInterface):
             select(ExerciseFavorite.exercise_id).where(
                 ExerciseFavorite.user_id == user_id,
                 ExerciseFavorite.exercise_id.in_(exercise_ids),
+            )
+        )
+        return set(rows.scalars().all())
+
+    async def find_existing_names(self, names: list[str]) -> set[str]:
+        if not names:
+            return set()
+        lower_names = [n.strip().lower() for n in names]
+        rows = await self.session.execute(
+            select(func.lower(Exercise.name)).where(
+                func.lower(Exercise.name).in_(lower_names)
             )
         )
         return set(rows.scalars().all())

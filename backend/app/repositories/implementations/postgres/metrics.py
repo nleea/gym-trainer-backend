@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Dict, List
 
 from sqlalchemy import text
@@ -94,3 +94,17 @@ class MetricsRepository(MetricsRepositoryInterface):
         history = await self.list_by_client(client_id)
 
         return {"deltas": deltas, "series": series, "history": history}
+
+    async def list_by_client_date_range(
+        self, client_id: uuid.UUID, from_date: date, to_date: date,
+    ) -> List[Metric]:
+        result = await self.session.execute(
+            select(Metric)
+            .where(
+                Metric.client_id == client_id,
+                Metric.date >= from_date,
+                Metric.date <= to_date,
+            )
+            .order_by(Metric.date.asc())
+        )
+        return list(result.scalars().all())

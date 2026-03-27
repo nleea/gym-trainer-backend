@@ -73,3 +73,29 @@ class TrainingLogsRepositoryInterface(ABC):
     ) -> int:
         """Count training logs between from_date and to_date."""
         pass
+
+    @abstractmethod
+    async def get_exercise_sets_history(
+        self, client_id: UUID, exercise_id: str,
+    ) -> List[Dict[str, Any]]:
+        """Returns [{date, exercise_name, weight, reps, completed}] for all sets of an exercise, ordered by date ASC."""
+        pass
+
+    @abstractmethod
+    async def get_logged_exercises(
+        self, client_id: UUID,
+    ) -> List[Dict[str, Any]]:
+        """Returns [{exercise_id, exercise_name}] — unique exercises with at least one set with weight > 0."""
+        pass
+
+    @abstractmethod
+    async def get_workout_dates(self, client_id: UUID) -> List[date]:
+        """Returns distinct workout dates for a client, ordered DESC."""
+        pass
+
+    @abstractmethod
+    async def get_rpe_history(
+        self, client_id: UUID, exercise_id: str,
+    ) -> List[Dict[str, Any]]:
+        """Returns [{date, avg_rpe}] — average RPE per session for an exercise, ordered by date ASC."""
+        pass

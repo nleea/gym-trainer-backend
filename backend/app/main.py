@@ -23,6 +23,7 @@ from app.routers import (
     exercise_evidences,
 )
 from app.routers import user_config
+from app.routers import wellness
 from app.routers import weekly_checkin
 from app.routers import trainer_dashboard
 from app.routers import photos
@@ -88,6 +89,7 @@ app.include_router(photos.router, prefix="/photos", tags=["photos"])
 app.include_router(exercise_evidences.router, prefix="/exercise-evidences", tags=["exercise-evidences"])
 app.include_router(evidences.router, prefix="/evidences", tags=["evidences"])
 app.include_router(monthly_report.router, tags=["monthly-report"])
+app.include_router(wellness.router, prefix="/wellness", tags=["wellness"])
 
 
 @app.get("/health", tags=["health"])

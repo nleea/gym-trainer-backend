@@ -79,6 +79,25 @@ from app.services.evidences import EvidencesService
 """ VOLUME METRICS """
 from app.services.volume_metrics import VolumeMetricsService
 
+""" ONE REP MAX """
+from app.services.one_rep_max import OneRepMaxService
+
+""" STREAK """
+from app.services.streak import StreakService
+
+""" ACHIEVEMENTS """
+from app.repositories.implementations.postgres.achievements import AchievementsRepository
+from app.repositories.interface.achievementsInterface import AchievementsRepositoryInterface
+from app.services.achievements import AchievementsService
+
+""" DAILY WELLNESS """
+from app.repositories.implementations.postgres.daily_wellness import DailyWellnessRepository
+from app.repositories.interface.dailyWellnessInterface import DailyWellnessRepositoryInterface
+from app.services.daily_wellness import DailyWellnessService
+
+""" WELLNESS INSIGHTS """
+from app.services.wellness_insights import WellnessInsightsService
+
 
 # ── Repository factories ──────────────────────────────────────────────────────
 
@@ -112,6 +131,12 @@ async def get_exercises_repository(db: AsyncSession = Depends(db_context)) -> Ex
 async def get_attendance_repository(db: AsyncSession = Depends(db_context)) -> AttendanceRepositoryInterface:
     return AttendanceRepository(db)
 
+async def get_achievements_repository(db: AsyncSession = Depends(db_context)) -> AchievementsRepositoryInterface:
+    return AchievementsRepository(db)
+
+async def get_daily_wellness_repository(db: AsyncSession = Depends(db_context)) -> DailyWellnessRepositoryInterface:
+    return DailyWellnessRepository(db)
+
 async def get_user_config_repository(db: AsyncSession = Depends(db_context)) -> UserConfigRepositoryInterface:
     return UserConfigRepository(db)
 
@@ -136,8 +161,9 @@ async def get_clients_service(
 async def get_training_plans_service(
     plans_repo: TrainingPlansRepositoryInterface = Depends(get_training_plans_repository),
     clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+    exercises_repo: ExercisesRepositoryInterface = Depends(get_exercises_repository),
 ) -> TrainingPlansService:
-    return TrainingPlansService(plans_repo, clients_repo)
+    return TrainingPlansService(plans_repo, clients_repo, exercises_repo)
 
 async def get_nutrition_plans_service(
     plans_repo: NutritionPlansRepositoryInterface = Depends(get_nutrition_plans_repository),
@@ -148,8 +174,10 @@ async def get_nutrition_plans_service(
 async def get_training_logs_service(
     logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
     clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+    achievements_repo: AchievementsRepositoryInterface = Depends(get_achievements_repository),
 ) -> TrainingLogsService:
-    return TrainingLogsService(logs_repo, clients_repo)
+    achievements_svc = AchievementsService(achievements_repo, clients_repo)
+    return TrainingLogsService(logs_repo, clients_repo, achievements_svc)
 
 async def get_meal_logs_service(
     logs_repo: MealLogsRepositoryInterface = Depends(get_meal_logs_repository),
@@ -238,6 +266,20 @@ async def get_evidences_service(
     return EvidencesService(clients_repo=clients_repo, exercise_repo=exercise_repo, providers=providers)
 
 
+async def get_one_rep_max_service(
+    training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> OneRepMaxService:
+    return OneRepMaxService(training_logs_repo, clients_repo)
+
+
+async def get_streak_service(
+    training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> StreakService:
+    return StreakService(training_logs_repo, clients_repo)
+
+
 async def get_volume_metrics_service(
     training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
     clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
@@ -245,3 +287,25 @@ async def get_volume_metrics_service(
     meal_logs_repo: MealLogsRepositoryInterface = Depends(get_meal_logs_repository),
 ) -> VolumeMetricsService:
     return VolumeMetricsService(training_logs_repo, clients_repo, training_plans_repo, meal_logs_repo)
+
+
+async def get_achievements_service(
+    achievements_repo: AchievementsRepositoryInterface = Depends(get_achievements_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> AchievementsService:
+    return AchievementsService(achievements_repo, clients_repo)
+
+
+async def get_daily_wellness_service(
+    wellness_repo: DailyWellnessRepositoryInterface = Depends(get_daily_wellness_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> DailyWellnessService:
+    return DailyWellnessService(wellness_repo, clients_repo)
+
+
+async def get_wellness_insights_service(
+    wellness_repo: DailyWellnessRepositoryInterface = Depends(get_daily_wellness_repository),
+    training_logs_repo: TrainingLogsRepositoryInterface = Depends(get_training_logs_repository),
+    clients_repo: ClientsRepositoryInterface = Depends(get_clients_repository),
+) -> WellnessInsightsService:
+    return WellnessInsightsService(wellness_repo, training_logs_repo, clients_repo)

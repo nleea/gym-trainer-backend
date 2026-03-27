@@ -1,13 +1,15 @@
 import uuid
 import copy
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List, Optional
 
 from fastapi import HTTPException, status
 
+from app.models.exercise import Exercise
 from app.models.training_plan import TrainingPlan
 from app.models.user import User
 from app.repositories.interface.clientsInterface import ClientsRepositoryInterface
+from app.repositories.interface.exercisesInterface import ExercisesRepositoryInterface
 from app.repositories.interface.trainingPlansInterface import TrainingPlansRepositoryInterface
 from app.schemas.training_plan import (
     AssignTrainingPlanRequest,
@@ -21,13 +23,49 @@ class TrainingPlansService:
         self,
         plans_repo: TrainingPlansRepositoryInterface,
         clients_repo: ClientsRepositoryInterface,
+        exercises_repo: Optional[ExercisesRepositoryInterface] = None,
     ) -> None:
         self.plans_repo = plans_repo
         self.clients_repo = clients_repo
+        self.exercises_repo = exercises_repo
 
     def _assert_trainer_owns_plan(self, plan: TrainingPlan, trainer: User) -> None:
         if plan.trainer_id != trainer.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    @staticmethod
+    def _extract_exercise_names(weeks: Any) -> List[str]:
+        """Extract unique exercise names from the weeks JSON."""
+        if not isinstance(weeks, list):
+            return []
+        names: set[str] = set()
+        for week in weeks:
+            if not isinstance(week, dict):
+                continue
+            for day in week.get("days") or []:
+                if not isinstance(day, dict):
+                    continue
+                for ex in day.get("exercises") or []:
+                    if not isinstance(ex, dict):
+                        continue
+                    name = (ex.get("name") or "").strip()
+                    if name:
+                        names.add(name)
+        return list(names)
+
+    async def _ensure_exercises_exist(self, weeks: Any, trainer: User) -> None:
+        """Create Exercise records for any plan exercise not yet in the DB."""
+        if not self.exercises_repo:
+            return
+        names = self._extract_exercise_names(weeks)
+        if not names:
+            return
+        existing = await self.exercises_repo.find_existing_names(names)
+        for name in names:
+            if name.strip().lower() in existing:
+                continue
+            exercise = Exercise(name=name, trainer_id=trainer.id)
+            await self.exercises_repo.create(exercise)
 
     async def list_plans(self, trainer: User) -> List[TrainingPlan]:
         return await self.plans_repo.list_by_trainer(trainer.id)
@@ -63,7 +101,9 @@ class TrainingPlansService:
             name=data.name,
             weeks=data.weeks,
         )
-        return await self.plans_repo.create(plan)
+        created = await self.plans_repo.create(plan)
+        await self._ensure_exercises_exist(data.weeks, trainer)
+        return created
 
     async def update_plan(
         self, plan_id: uuid.UUID, data: TrainingPlanUpdate, trainer: User
@@ -77,7 +117,10 @@ class TrainingPlansService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Usa el endpoint de plantillas para editar plantillas",
             )
-        return await self.plans_repo.update(plan, data.model_dump(exclude_none=True))
+        updated = await self.plans_repo.update(plan, data.model_dump(exclude_none=True))
+        if data.weeks is not None:
+            await self._ensure_exercises_exist(data.weeks, trainer)
+        return updated
 
     async def update_template(
         self, plan_id: uuid.UUID, data: TrainingPlanUpdate, trainer: User
@@ -91,7 +134,10 @@ class TrainingPlansService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Usa el endpoint de cliente para planes asignados",
             )
-        return await self.plans_repo.update(plan, data.model_dump(exclude_none=True))
+        updated = await self.plans_repo.update(plan, data.model_dump(exclude_none=True))
+        if data.weeks is not None:
+            await self._ensure_exercises_exist(data.weeks, trainer)
+        return updated
 
     async def delete_template(self, plan_id: uuid.UUID, trainer: User) -> None:
         plan = await self.plans_repo.get_by_id(plan_id)

@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Optional
 
 from fastapi import HTTPException, status
@@ -8,6 +8,7 @@ from app.models.training_log import TrainingLog
 from app.models.user import User
 from app.repositories.interface.clientsInterface import ClientsRepositoryInterface
 from app.repositories.interface.trainingLogsInterface import TrainingLogsRepositoryInterface
+from app.services.achievements import AchievementsService
 from app.schemas.training_log import TrainingLogCreate, TrainingLogUpdate, PRItem
 
 
@@ -16,9 +17,11 @@ class TrainingLogsService:
         self,
         logs_repo: TrainingLogsRepositoryInterface,
         clients_repo: ClientsRepositoryInterface,
+        achievements_service: Optional[AchievementsService] = None,
     ) -> None:
         self.logs_repo = logs_repo
         self.clients_repo = clients_repo
+        self.achievements_service = achievements_service
 
     async def _get_client_for_user(self, user: User):
         client = await self.clients_repo.get_by_user_id(user.id)
@@ -70,7 +73,41 @@ class TrainingLogsService:
                     previousBest=prev_best,
                 ))
 
+        # Evaluate achievements post-workout
+        if self.achievements_service:
+            total_workouts = await self.logs_repo.count_logs_in_range(
+                client.id, date(2000, 1, 1), data.date,
+            )
+            # Calculate current streak
+            workout_dates = await self.logs_repo.get_workout_dates(client.id)
+            current_streak = self._calc_current_streak(workout_dates)
+
+            await self.achievements_service.evaluate_post_workout(
+                client_id=client.id,
+                total_workouts=total_workouts,
+                current_streak=current_streak,
+                had_pr=len(prs) > 0,
+            )
+
         return {"log": saved_log, "prs": prs}
+
+    @staticmethod
+    def _calc_current_streak(dates: List[date]) -> int:
+        """Calculate current streak from sorted-DESC workout dates."""
+        if not dates:
+            return 0
+        today = date.today()
+        if dates[0] < today - timedelta(days=1):
+            return 0
+        expected = dates[0]
+        streak = 0
+        for d in dates:
+            if d == expected:
+                streak += 1
+                expected -= timedelta(days=1)
+            elif d < expected:
+                break
+        return streak
 
     async def update_log(
         self, log_id: uuid.UUID, data: TrainingLogUpdate, current_user: User

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from datetime import date
 from uuid import UUID
 from typing import Any, Dict, List
 
@@ -29,4 +30,11 @@ class MetricsRepositoryInterface(ABC):
     @abstractmethod
     async def get_summary(self, client_id: UUID) -> Dict[str, Any]:
         """Returns dict with keys: deltas, series, history."""
+        pass
+
+    @abstractmethod
+    async def list_by_client_date_range(
+        self, client_id: UUID, from_date: date, to_date: date,
+    ) -> List[Metric]:
+        """Returns metrics for a client within a date range, ordered by date ASC."""
         pass

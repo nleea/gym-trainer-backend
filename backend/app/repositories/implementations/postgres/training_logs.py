@@ -108,8 +108,8 @@ _VOLUME_BY_RANGE_SQL = text("""
 WITH
   week_series AS (
     SELECT generate_series(
-      date_trunc('week', :from_date::date),
-      date_trunc('week', :to_date::date),
+      date_trunc('week', CAST(:from_date AS date)),
+      date_trunc('week', CAST(:to_date AS date)),
       '1 week'::interval
     )::date AS week_start
   ),
@@ -142,6 +142,77 @@ FROM week_series w
 LEFT JOIN log_volumes lv ON lv.week_start = w.week_start
 GROUP BY w.week_start
 ORDER BY w.week_start ASC
+""")
+
+_RPE_HISTORY_SQL = text("""
+SELECT
+  tl.date::text AS date,
+  ROUND(AVG((s->>'rpe')::float)::numeric, 1) AS avg_rpe
+FROM training_logs tl,
+  jsonb_array_elements(
+    CASE WHEN jsonb_typeof(tl.exercises::jsonb) = 'array'
+         THEN tl.exercises::jsonb ELSE '[]'::jsonb END
+  ) ex,
+  jsonb_array_elements(
+    CASE WHEN jsonb_typeof(ex->'sets') = 'array'
+         THEN ex->'sets' ELSE '[]'::jsonb END
+  ) s
+WHERE tl.client_id = :cid
+  AND ex->>'exerciseId' = :exercise_id
+  AND (s->>'rpe') IS NOT NULL
+  AND COALESCE((s->>'completed')::boolean, true) = true
+GROUP BY tl.date
+ORDER BY tl.date ASC
+""")
+
+_WORKOUT_DATES_SQL = text("""
+SELECT DISTINCT tl.date
+FROM training_logs tl
+WHERE tl.client_id = :cid
+ORDER BY tl.date DESC
+""")
+
+_LOGGED_EXERCISES_SQL = text("""
+SELECT DISTINCT
+  ex->>'exerciseId' AS exercise_id,
+  ex->>'exerciseName' AS exercise_name
+FROM training_logs tl,
+  jsonb_array_elements(
+    CASE WHEN jsonb_typeof(tl.exercises::jsonb) = 'array'
+         THEN tl.exercises::jsonb ELSE '[]'::jsonb END
+  ) ex
+WHERE tl.client_id = :cid
+  AND EXISTS (
+    SELECT 1 FROM jsonb_array_elements(
+      CASE WHEN jsonb_typeof(ex->'sets') = 'array'
+           THEN ex->'sets' ELSE '[]'::jsonb END
+    ) s
+    WHERE (s->>'weight')::float > 0
+  )
+ORDER BY exercise_name ASC
+""")
+
+_EXERCISE_SETS_HISTORY_SQL = text("""
+SELECT
+  tl.date::text AS date,
+  ex->>'exerciseName' AS exercise_name,
+  (s->>'weight')::float AS weight,
+  (s->>'reps')::int AS reps,
+  COALESCE((s->>'completed')::boolean, true) AS completed
+FROM training_logs tl,
+  jsonb_array_elements(
+    CASE WHEN jsonb_typeof(tl.exercises::jsonb) = 'array'
+         THEN tl.exercises::jsonb ELSE '[]'::jsonb END
+  ) ex,
+  jsonb_array_elements(
+    CASE WHEN jsonb_typeof(ex->'sets') = 'array'
+         THEN ex->'sets' ELSE '[]'::jsonb END
+  ) s
+WHERE tl.client_id = :cid
+  AND ex->>'exerciseId' = :exercise_id
+  AND (s->>'weight') IS NOT NULL
+  AND (s->>'reps') IS NOT NULL
+ORDER BY tl.date ASC
 """)
 
 _COUNT_LOGS_RANGE_SQL = text("""
@@ -303,3 +374,51 @@ class TrainingLogsRepository(TrainingLogsRepositoryInterface):
             _COUNT_LOGS_RANGE_SQL, {"cid": client_id, "from_date": from_date, "to_date": to_date}
         )).mappings().first()
         return int(row["cnt"]) if row else 0
+
+    async def get_exercise_sets_history(
+        self, client_id: uuid.UUID, exercise_id: str,
+    ) -> List[Dict[str, Any]]:
+        rows = (await self.session.execute(
+            _EXERCISE_SETS_HISTORY_SQL, {"cid": client_id, "exercise_id": exercise_id}
+        )).mappings().all()
+        return [
+            {
+                "date": row["date"],
+                "exercise_name": row["exercise_name"],
+                "weight": float(row["weight"]),
+                "reps": int(row["reps"]),
+                "completed": bool(row["completed"]),
+            }
+            for row in rows
+        ]
+
+    async def get_logged_exercises(
+        self, client_id: uuid.UUID,
+    ) -> List[Dict[str, Any]]:
+        rows = (await self.session.execute(
+            _LOGGED_EXERCISES_SQL, {"cid": client_id}
+        )).mappings().all()
+        return [
+            {
+                "exercise_id": row["exercise_id"],
+                "exercise_name": row["exercise_name"] or "",
+            }
+            for row in rows
+        ]
+
+    async def get_workout_dates(self, client_id: uuid.UUID) -> list[date]:
+        rows = (await self.session.execute(
+            _WORKOUT_DATES_SQL, {"cid": client_id}
+        )).scalars().all()
+        return list(rows)
+
+    async def get_rpe_history(
+        self, client_id: uuid.UUID, exercise_id: str,
+    ) -> List[Dict[str, Any]]:
+        rows = (await self.session.execute(
+            _RPE_HISTORY_SQL, {"cid": client_id, "exercise_id": exercise_id}
+        )).mappings().all()
+        return [
+            {"date": row["date"], "avg_rpe": float(row["avg_rpe"])}
+            for row in rows
+        ]

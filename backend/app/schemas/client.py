@@ -12,6 +12,7 @@ class ClientBase(BaseModel):
     weight: Optional[float] = None
     height: Optional[float] = None
     age: Optional[int] = None
+    gender: Optional[str] = None
 
 
 class ClientCreate(ClientBase):
@@ -27,6 +28,7 @@ class ClientUpdate(BaseModel):
     weight: Optional[float] = None
     height: Optional[float] = None
     age: Optional[int] = None
+    gender: Optional[str] = None
     plan_id: Optional[uuid.UUID] = None
     nutrition_plan_id: Optional[uuid.UUID] = None
 
